@@ -3,6 +3,7 @@ package kr.co.ohmydayz.sample.airchecker.view;
 import android.annotation.SuppressLint;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -75,74 +76,38 @@ public class AirStatusActivity extends AppCompatActivity {
             }
         });
 
+
         gpsTracker = new GpsTracker(AirStatusActivity.this);
+        gpsTracker.getLocation(new GpsTracker.OnGetLocationListener() {
+            @Override
+            public void onGetLocation(Location location) {
+                Toast.makeText(AirStatusActivity.this, location.getLatitude() + ", " + location.getLongitude(), Toast.LENGTH_SHORT).show();
 
-        double latitude = gpsTracker.getLatitude();
-        double longitude = gpsTracker.getLongitude();
+                NetworkManager.getWeatherApi()
+                        .create(WeatherApi.class)
+                        .getWeather(location.getLatitude(), location.getLongitude())
+                        .enqueue(new Callback<WeatherModel>() {
+                            @Override
+                            public void onResponse(Call<WeatherModel> call, Response<WeatherModel> response) {
+                                if (response.isSuccessful()) {
+                                    WeatherModel weatherStatus = response.body();
+                                    Log.d("qq", weatherStatus.getWind().getSpeed() + "");
+                                    Log.d("qq", weatherStatus.getWeather().get(0).getDescription());
 
-        String address = getCurrentAddress(latitude, longitude);
-        textviewAddress.setText(address);
+                                }
+                            }
 
-        Toast.makeText(AirStatusActivity.this, "현재위치 \n위도 " + latitude + "\n경도 " + longitude, Toast.LENGTH_LONG).show();
-
-
-    }
-
-
-    public String getCurrentAddress(double latitude, double longitude) {
-
-        //지오코더... GPS를 주소로 변환
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-
-        List<Address> addresses;
-
-        try {
-
-            addresses = geocoder.getFromLocation(
-                    latitude,
-                    longitude,
-                    7);
-        } catch (IOException ioException) {
-            //네트워크 문제
-            Toast.makeText(this, "지오코더 서비스 사용불가", Toast.LENGTH_LONG).show();
-            return "지오코더 서비스 사용불가";
-        } catch (IllegalArgumentException illegalArgumentException) {
-            Toast.makeText(this, "잘못된 GPS 좌표", Toast.LENGTH_LONG).show();
-            return "잘못된 GPS 좌표";
-
-        }
-
-
-        if (addresses == null || addresses.size() == 0) {
-            Toast.makeText(this, "주소 미발견", Toast.LENGTH_LONG).show();
-            return "주소 미발견";
-
-        }
-
-        Address address = addresses.get(0);
-
-        NetworkManager.getWeatherApi()
-                .create(WeatherApi.class)
-                .getWeather(latitude, longitude)
-                .enqueue(new Callback<WeatherModel>() {
-                    @Override
-                    public void onResponse(Call<WeatherModel> call, Response<WeatherModel> response) {
-                        if (response.isSuccessful()) {
-                            WeatherModel model = response.body();
-                            Log.d("qq", model.getWeather().get(0).getDescription());
-
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<WeatherModel> call, Throwable t) {
-
-                    }
-                });
-
-        return address.getAddressLine(0).toString() + "\n";
+                            @Override
+                            public void onFailure(Call<WeatherModel> call, Throwable t) {
+                                t.printStackTrace();
+                                Toast.makeText(AirStatusActivity.this, "네트워크 연결을 확인해주세요.", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        });
 
     }
+
 
 
 }

@@ -235,16 +235,16 @@ public class WeatherModel implements Serializable {
     public class Wind implements Serializable {
 
         @SerializedName("speed")
-        private Integer speed;
+        private double speed;
         @SerializedName("deg")
         private Integer deg;
         private final static long serialVersionUID = -8666756660275293167L;
 
-        public Integer getSpeed() {
+        public double getSpeed() {
             return speed;
         }
 
-        public void setSpeed(Integer speed) {
+        public void setSpeed(double speed) {
             this.speed = speed;
         }
 
